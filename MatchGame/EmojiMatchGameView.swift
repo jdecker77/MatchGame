@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct EmojiMatchGameView: View {
+    @ObservedObject var viewModel: EmojiMatchGame
 
     @State var emojis: Array<String> = []
         
@@ -15,8 +16,15 @@ struct ContentView: View {
         VStack {
             Text("The Match Game!")
                 .font(.largeTitle)
+//            if emojis.count == 0{
+//                instructions
+//            }
             ScrollView {
                 cards
+                    .animation(.default, value: viewModel.cards)
+            }
+            Button("Shuffle") {
+                viewModel.shuffle()
             }
             Spacer()
             themeSelection
@@ -24,9 +32,17 @@ struct ContentView: View {
         .padding()
     }
     
+    var instructions: some View {
+        VStack {
+            Text("Select A Theme to start the Match Game!")
+                .foregroundColor(Color.orange)
+        }
+        .frame(maxHeight: .infinity, alignment: .bottom)
+    }
+    
     func setTheme(by theme: String, symbol: String, by emoji: [String]) -> some View {
         VStack {
-            
+
             Button(action: {
                 var paired_emoji: Array<String>
                 paired_emoji = emoji+emoji
@@ -35,22 +51,22 @@ struct ContentView: View {
                 Image(systemName: symbol)
                     .frame(height: 20.0,alignment: .bottom)
                     .imageScale(.large)
-                    
+
             })
             Text(theme)
                 .font(.caption)
                 .foregroundColor(Color.blue)
         }
     }
-    
+
     var theme1: some View {
         setTheme(by: "House Pets",symbol:"house",by: ["🐶","🐣","🐕‍🦺","🐠","🐹","🐛","🐩","🐸"])
     }
-    
+
     var theme2: some View {
         setTheme(by: "Workers",symbol:"wrench.fill",by: ["🦄","🦜","🐴","🐔","🐐","🐂","🦆","🦚","🐖","🐏"])
     }
-    
+
     var theme3: some View {
         setTheme(by: "Swimmers",symbol:"figure.open.water.swim",by: ["🦕","🦈","🐙","🦀","🐬","🐳","🐊","🦭","🦐","🦞","🐢","🪼"])
     }
@@ -66,14 +82,17 @@ struct ContentView: View {
             Spacer()
         
         }
-        .padding()
     }
     
     var cards: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 60))]) {
-            ForEach(0..<emojis.count, id: \.self){ index in
-                CardView(content: emojis[index])
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 85),spacing:0)],spacing:0) {
+            ForEach(viewModel.cards){ card in
+                CardView(card)
                     .aspectRatio(2/3, contentMode: .fit)
+                    .padding(4)
+                    .onTapGesture {
+                        viewModel.choose(card)
+                    }
             }
         }
         .foregroundColor(.orange)
@@ -81,8 +100,14 @@ struct ContentView: View {
 }
 
 struct CardView: View {
-    let content: String
-    @State var isFaceUp = false
+    let card: MatchGame<String>.Card
+    
+    init(_ card: MatchGame<String>.Card) {
+        self.card = card
+    }
+    
+//    let content: String
+//    @State var isFaceUp = false
     
     var body: some View {
         ZStack {
@@ -90,19 +115,21 @@ struct CardView: View {
             Group {
                 base.fill(.white)
                 base.strokeBorder(lineWidth: 2)
-                Text(content).font(.largeTitle)
+                Text(card.content)
+                    .font(.system(size:200))
+                    .minimumScaleFactor(0.01)
+                    .aspectRatio(1,contentMode: .fit)
             }
-            .opacity(isFaceUp ? 1:0)
-            base.fill().opacity(isFaceUp ? 0:1)
+            .opacity(card.isFaceUp ? 1:0)
+            base.fill()
+                .opacity(card.isFaceUp ? 0:1)
         }
-        .onTapGesture {
-            isFaceUp.toggle()
-        }
+        .opacity(card.isFaceUp || !card.isMatched ? 1 : 0)
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
+struct EmojiMatchGameView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        EmojiMatchGameView(viewModel: EmojiMatchGame())
     }
 }
